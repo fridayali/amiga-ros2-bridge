@@ -34,6 +34,9 @@ from farm_ng.gps.gps_pb2 import GpsFrame
 from farm_ng.oak.oak_pb2 import OakFrame
 from farm_ng.oak.oak_pb2 import OakImuPacket
 from farm_ng.oak.oak_pb2 import OakImuPackets
+from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import BatteryState
+from farm_ng.canbus.packet import MotorState
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
@@ -89,6 +92,8 @@ def farmng_path_to_ros_type(uri: uri_pb2.Uri):
 
     if "canbus" in uri.query and uri.path == "/twist":
         return TwistStamped
+    elif "canbus" in uri.query and uri.path == "/motor_state":
+        pass
     elif "gps" in uri.query and uri.path == "/pvt":
         return NavSatFix
     elif "oak" in uri.query:

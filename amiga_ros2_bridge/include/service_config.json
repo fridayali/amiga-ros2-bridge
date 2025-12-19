@@ -46,6 +46,13 @@
                         "query": "service_name=gps"
                     },
                     "every_n": 1
+                },
+                {
+                    "uri": {
+                        "path": "/motor_states",
+                        "query": "service_name=canbus"
+                    },
+                    "every_n": 1
                 }
             ]
         }
