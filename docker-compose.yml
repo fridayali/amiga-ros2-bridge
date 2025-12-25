@@ -1,0 +1,55 @@
+services:
+  amiga_bridge:
+    image: ghcr.io/ucmercedrobotics/amiga-ros2-bridge
+    container_name: amiga_bridge
+    network_mode: host
+    privileged: true
+
+    environment:
+      DISPLAY: ":2"
+      ROS_DOMAIN_ID: "10"
+      RMW_IMPLEMENTATION: "rmw_fastrtps_cpp"
+
+    volumes:
+      - ./amiga_ros2_behavior_tree:/amiga-ros2-bridge/amiga_ros2_behavior_tree:Z
+      - ./amiga_ros2_bridge:/amiga-ros2-bridge/amiga_ros2_bridge:Z
+      - ./amiga_ros2_description:/amiga-ros2-bridge/amiga_ros2_description:Z
+      - ./amiga_ros2_teleop:/amiga-ros2-bridge/amiga_ros2_teleop:Z
+      - ./amiga-ros2-nav:/amiga-ros2-bridge/amiga-ros2-nav:Z
+      - ./amiga_ros2_oakd:/amiga-ros2-bridge/amiga_ros2_oakd:Z
+      - ./amiga_bringup:/amiga-ros2-bridge/amiga_bringup:Z
+
+      # laser filter YAML dosyan
+      - ./amiga_ros2_bridge/laser_filter.yaml:/amiga-ros2-bridge/amiga_ros2_bridge/laser_filter.yaml:Z
+
+      - ~/.ssh:/root/.ssh:ro
+      - /dev/input/js0:/dev/input/js0
+      - /dev/ttyACM1:/dev/ttyACM1
+      - /dev/ttyUSB0:/dev/ttyUSB0
+
+    stdin_open: true
+    tty: true
+
+    command: >
+      bash -c "
+        echo 'ROS_DOMAIN_ID is' $ROS_DOMAIN_ID &&
+        colcon build &&
+        source /opt/ros/humble/setup.bash &&
+        source /amiga-ros2-bridge/install/setup.bash &&
+        source /.venv/bin/activate ;
+
+      	echo '[START] amiga_streams.launch.py' &&
+        ros2 launch amiga_ros2_bridge amiga_streams.launch.py &
+
+        sleep 2 &&
+
+        #echo '[START] rplidar_s2_launch.py' &&
+        #ros2 launch amiga_ros2_bridge rplidar.launch.py &
+
+        sleep 10 &&
+
+        echo '[START] laser_filters with params-file' &&
+        ros2 launch amiga_ros2_bridge laser_filter.launch.py &
+
+        echo '[ALL ROS NODES STARTED]' &&
+        sleep infinity"
