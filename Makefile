@@ -97,5 +97,9 @@ cartographer:
 	ros-$(ROS_DISTRO)-cartographer-ros
 
 build-prod:
-	docker buildx build --platform linux/arm64/v8 . -t ${IMAGE} --target base
+	docker buildx build \
+		--platform ${PLATFORM} \
+		--target ${TARGET} \
+		-t ${IMAGE}:${ARCH_TAG} \
+		--load 
 
