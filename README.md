@@ -40,7 +40,7 @@ Collaboration and PRs are welcome and will be evaluated by UC Merced and Farm-ng
 
 1. Clone this repo and open the directory:
 ```bash
-git clone https://github.com/ucmercedrobotics/amiga-ros2-bridge.git
+git clone https://github.com/fridayali/amiga-ros2-bridge.git
 cd amiga-ros2-bridge
 ```
 
