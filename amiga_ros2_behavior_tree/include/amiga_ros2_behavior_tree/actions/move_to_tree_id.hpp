@@ -1,17 +1,17 @@
 #pragma once
 
-#include <kortex_interfaces/action/segment_leaves.hpp>
+#include <amiga_navigation_interfaces/action/tree_id_waypoint.hpp>
 #include <behaviortree_ros2/bt_action_node.hpp>
 #include <behaviortree_ros2/ros_node_params.hpp>
 
 namespace amiga_bt {
 
-using SegmentLeaves = kortex_interfaces::action::SegmentLeaves;
+using TreeIDWaypoint = amiga_navigation_interfaces::action::TreeIDWaypoint;
 
-class SampleLeaf : public BT::RosActionNode<SegmentLeaves> {
+class MoveToTreeID : public BT::RosActionNode<TreeIDWaypoint> {
  public:
-  SampleLeaf(const std::string &name, const BT::NodeConfig &config,
-             const BT::RosNodeParams &params);
+  MoveToTreeID(const std::string &name, const BT::NodeConfig &config,
+                    const BT::RosNodeParams &params);
 
   static BT::PortsList providedPorts();
 

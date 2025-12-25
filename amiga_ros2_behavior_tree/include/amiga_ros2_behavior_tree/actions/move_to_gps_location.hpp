@@ -1,14 +1,14 @@
 #pragma once
 
-#include <amiga_navigation_interfaces/action/wpfollow.hpp>
+#include <amiga_navigation_interfaces/action/gps_waypoint.hpp>
 #include <behaviortree_ros2/bt_action_node.hpp>
 #include <behaviortree_ros2/ros_node_params.hpp>
 
 namespace amiga_bt {
 
-using WpFollow = amiga_navigation_interfaces::action::Wpfollow;
+using GPSWaypoint = amiga_navigation_interfaces::action::GPSWaypoint;
 
-class MoveToGPSLocation : public BT::RosActionNode<WpFollow> {
+class MoveToGPSLocation : public BT::RosActionNode<GPSWaypoint> {
  public:
   MoveToGPSLocation(const std::string &name, const BT::NodeConfig &config,
                     const BT::RosNodeParams &params);
