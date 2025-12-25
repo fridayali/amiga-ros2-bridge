@@ -83,3 +83,13 @@ localization:
 
 amiga:
 	./scripts/bringup_amiga_tmux.sh
+
+cartographer:
+	apt update && \
+	apt install -y \
+	ros-$(ROS_DISTRO)-cartographer \
+	ros-$(ROS_DISTRO)-cartographer-ros
+
+build-prod:
+        docker buildx build --platform linux/arm64/v8 . -t ${IMAGE} --target base
+
