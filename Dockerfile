@@ -8,10 +8,25 @@ ARG PACKAGE_NAME="amiga_ros2_bridge"
 ARG MACHINE_NAME="agx"
 
 # any utilities you want
-RUN apt-get update && apt-get install -y git wget python3-full python3-pip vim net-tools netcat-traditional build-essential cmake \
-    ros-${ROS_DISTRO}-foxglove-bridge ros-${ROS_DISTRO}-depthai-ros \
-    ros-${ROS_DISTRO}-behaviortree-cpp ros-${ROS_DISTRO}-generate-parameter-library \
+RUN apt-get update && apt-get install -y \
+    git wget python3-full python3-pip vim net-tools netcat-traditional \
+    build-essential cmake \
+    \
+    ros-${ROS_DISTRO}-foxglove-bridge \
+    ros-${ROS_DISTRO}-depthai-ros \
+    ros-${ROS_DISTRO}-behaviortree-cpp \
+    ros-${ROS_DISTRO}-generate-parameter-library \
+    \
+    ros-${ROS_DISTRO}-cartographer \
+    ros-${ROS_DISTRO}-cartographer-ros \
+    ros-${ROS_DISTRO}-laser-filters \
+    ros-${ROS_DISTRO}-rplidar-ros \
+    ros-${ROS_DISTRO}-tf-transformations \
+    ros-${ROS_DISTRO}-tf2-ros \
+    ros-${ROS_DISTRO}-tf2-tools \
+    \
     rhash librhash-dev
+
 
 # TODO: remove once you figure out why farm-ng isn't in /usr/local
 COPY requirements.txt /requirements.txt

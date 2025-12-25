@@ -37,6 +37,7 @@ from farm_ng.oak.oak_pb2 import OakImuPackets
 from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import BatteryState
 from farm_ng.canbus.packet import MotorState
+from farm_ng.canbus.canbus_pb2 import MotorStates
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
@@ -92,8 +93,6 @@ def farmng_path_to_ros_type(uri: uri_pb2.Uri):
 
     if "canbus" in uri.query and uri.path == "/twist":
         return TwistStamped
-    elif "canbus" in uri.query and uri.path == "/motor_state":
-        pass
     elif "gps" in uri.query and uri.path == "/pvt":
         return NavSatFix
     elif "oak" in uri.query:
@@ -132,6 +131,14 @@ def farmng_to_ros_msg(event: Event, farmng_msg: Any) -> list:
     # parse Oak Compressed Image message
     elif isinstance(farmng_msg, OakFrame):
         return [OakFrame_to_CompressedImage(farmng_msg, event)]
+    
+    elif isinstance(farmng_msg, MotorStates):
+        motors = [MotorState.from_proto(m) for m in farmng_msg.motors]
+
+        return [
+            Motors_to_Float32MultiArray(motors),
+            Motors_to_BatteryState(motors, event),
+        ]
 
     raise NotImplementedError(
         f"Unknown farmng message: {type(farmng_msg)} at path: {event.uri.path}"
@@ -157,6 +164,27 @@ def Twist2d_to_TwistStamped(twist2d: Twist2d, event: Event) -> TwistStamped:
     # Unpack the farmng twist data
     twist_stamped.twist = Twist2d_to_Twist(twist2d)
     return twist_stamped
+
+def Motors_to_BatteryState(motors, event: Event) -> BatteryState:
+    msg = BatteryState()
+    msg.header.stamp = farmng_stamp_to_ros_time(event)
+
+    temps = [m.temperature for m in motors]
+    volts = [m.voltage for m in motors]
+
+    msg.temperature = sum(temps) / len(temps)
+    msg.voltage = sum(volts) / len(volts)
+
+    msg.power_supply_status = BatteryState.POWER_SUPPLY_STATUS_DISCHARGING
+    msg.power_supply_health = BatteryState.POWER_SUPPLY_HEALTH_GOOD
+    msg.power_supply_technology = BatteryState.POWER_SUPPLY_TECHNOLOGY_LION
+
+    return msg
+
+def Motors_to_Float32MultiArray(motors):
+    msg = Float32MultiArray()
+    msg.data = [m.temperature for m in motors]
+    return msg
 
 
 def Twist2d_to_Twist(twist2d: Twist2d) -> Twist:

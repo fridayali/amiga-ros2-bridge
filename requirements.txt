@@ -18,6 +18,5 @@ ultralytics==8.3.236
 numpy
 requests
 websockets
-tf-transformations
 
 
