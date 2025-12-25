@@ -25,7 +25,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 name="use_lidar",
-                default_value="false",
+                default_value="true",
                 description="Whether to include the LiDAR in the robot description",
             ),
             DeclareLaunchArgument(

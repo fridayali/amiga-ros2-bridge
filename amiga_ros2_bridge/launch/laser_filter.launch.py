@@ -8,7 +8,7 @@ def generate_launch_description():
             package="laser_filters",
             executable="scan_to_scan_filter_chain",
             parameters=[
-                "/amiga-ros2-bridge/amiga_ros2_bridge/laser_filter.yaml"
+                "/amiga-ros2-bridge/amiga_ros2_bridge/include/laser_filter.yaml"
             ],
             remappings=[
                 ('/scan', '/scan/raw'),
