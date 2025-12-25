@@ -31,6 +31,9 @@ from nav2_msgs.action import NavigateToPose
 from tf_transformations import quaternion_from_euler
 import cv2
 import base64
+from geometry_msgs.msg import TwistStamped
+
+
 
 
 ROBOT_ID = 6
@@ -63,6 +66,24 @@ class TelemetryListener(Node):
             "battery_state": 0.0,
             "tool_status": "STATUS_UNKNOWN",
         }
+        self.topic_timeout_sec = 6.0   
+        self.topic_check_period = 3.0  
+
+        self.watchdog_topics = [
+            '/gps/pvt',
+            '/filter/state',
+            '/oak0/rgb',
+            "/canbus/twist"
+        ]
+
+        now = self.get_clock().now()
+        self.last_rx_time = {t: now for t in self.watchdog_topics}
+        self.seen_once = {t: False for t in self.watchdog_topics}
+
+        self.watchdog_timer = self.create_timer(
+            self.topic_check_period,
+            self._check_topics
+        )
 
         
 
@@ -71,16 +92,22 @@ class TelemetryListener(Node):
         }
         self.cameras_state=CameraState.RGB_CAMERA1_OFF
         self.telemetry_lock = threading.Lock()
-
+        
         self.create_subscription(NavSatFix, '/gps/pvt', self.gps_callback, 10)
         self.create_subscription(Odometry, '/filter/state', self.heading_callback, 10)
         #self.create_subscription(Float32MultiArray, '/motor_state', self.motor_callback, 10) #TODO ADD MOTOR TEMPS AND BATTERY STATUS DEPENDS RECEIVED FRAME 
         #self.create_subscription(BatteryState, '/battery_state', self.battery_callback, 10)
         self.goal_name_pub=self.create_publisher(String,'/goal_name',10)
-        
+        self.create_subscription(
+            TwistStamped,
+            '/canbus/twist',
+            self.canbus_twist_callback,
+            10
+        )
+
         self.subscription = self.create_subscription(
             CompressedImage,
-            '/oak0/rgb',     # publish edilen topic
+            '/oak0/rgb',     
             self.image_callback,
             10
 )
@@ -106,42 +133,52 @@ class TelemetryListener(Node):
         self.loop.run_forever()
 
 
-def image_callback(self, msg: CompressedImage):
+    def image_callback(self, msg: CompressedImage):
+        self.last_rx_time['/oak0/rgb'] = self.get_clock().now()
+        self.seen_once['/oak0/rgb'] = True
 
-    self.camera_data["RGB_CAMERA1"] = None
+        self.camera_data["RGB_CAMERA1"] = None
 
-    if self.cameras_state == CameraState.RGB_CAMERA1_OFF:
-        return
-
-    try:
-        np_arr = np.frombuffer(msg.data, np.uint8)
-
-        cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-        if cv_image is None:
-            self.get_logger().warn("Failed to decode compressed image")
+        if self.cameras_state == CameraState.RGB_CAMERA1_OFF:
             return
 
-        # OpenCV image → JPEG encode (again, for base64)
-        ret, buffer = cv2.imencode(".jpg", cv_image)
-        if not ret:
-            self.get_logger().warn("Failed to encode image")
-            return
+        try:
+            np_arr = np.frombuffer(msg.data, np.uint8)
 
-        jpg_as_text = base64.b64encode(buffer).decode("utf-8")
+            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        with self.telemetry_lock:
-            self.camera_data["RGB_CAMERA1"] = jpg_as_text
+            if cv_image is None:
+                self.get_logger().warn("Failed to decode compressed image")
+                return
 
-    except Exception as e:
-        self.get_logger().error(f"Image callback error: {e}")
-            
+            # OpenCV image → JPEG encode (again, for base64)
+            ret, buffer = cv2.imencode(".jpg", cv_image)
+            if not ret:
+                self.get_logger().warn("Failed to encode image")
+                return
+
+            jpg_as_text = base64.b64encode(buffer).decode("utf-8")
+
+            with self.telemetry_lock:
+                self.camera_data["RGB_CAMERA1"] = jpg_as_text
+
+        except Exception as e:
+            self.get_logger().error(f"Image callback error: {e}")
+    def canbus_twist_callback(self, msg: TwistStamped):
+        self.last_rx_time['/canbus/twist'] = self.get_clock().now()
+        self.seen_once['/canbus/twist'] = True
+        pass
+              
     def gps_callback(self, msg: NavSatFix):
+        self.last_rx_time['/gps/pvt'] = self.get_clock().now()
+        self.seen_once['/gps/pvt'] = True
         with self.telemetry_lock:
             self.telemetry_data["lat"] = msg.latitude
             self.telemetry_data["lon"] = msg.longitude
 
     def heading_callback(self, msg: Odometry):
+        self.last_rx_time['/filter/state'] = self.get_clock().now()
+        self.seen_once['/filter/state'] = True
         q = msg.pose.pose.orientation
         siny_cosp = 2 * (q.w * q.z + q.x * q.y)
         cosy_cosp = 1 - 2 * (q.y**2 + q.z**2)
@@ -164,21 +201,37 @@ def image_callback(self, msg: CompressedImage):
 
     def is_all_null(self, data):
         return all(v is None or v == [None, None, None, None] for v in data.values())
+    
+    
+    def _check_topics(self):
+        now = self.get_clock().now()
+
+        for topic in self.watchdog_topics:
+            dt = (now - self.last_rx_time[topic]).nanoseconds / 1e9
+
+            if dt > self.topic_timeout_sec:
+                if self.seen_once[topic]:
+                    self.get_logger().error(
+                        f"[WATCHDOG] Topic timeout: {topic} | {dt:.1f}s"
+                    )
+                else:
+                    self.get_logger().error(
+                        f"[WATCHDOG] Topic NEVER received: {topic}"
+                    )
 
 
+    # def send_goal(self, lat, lon, heading, mission_name):
 
-    def send_goal(self, lat, lon, heading, mission_name):
-
-        goal_msg = Float32MultiArray()
-        goal_msg.data = [float(lat), float(lon), float(heading)]
-        self.goal_pose_pub.publish(goal_msg)
+    #     goal_msg = Float32MultiArray()
+    #     goal_msg.data = [float(lat), float(lon), float(heading)]
+    #     self.goal_pose_pub.publish(goal_msg)
 
 
-        mission_msg = String()
-        mission_msg.data = str(mission_name) 
-        self.mission_pub.publish(mission_msg)
+    #     mission_msg = String()
+    #     mission_msg.data = str(mission_name) 
+    #     self.mission_pub.publish(mission_msg)
 
-        self.get_logger().info(f"Sending: {goal_msg.data}, Mission: {mission_msg.data}")
+    #     self.get_logger().info(f"Sending: {goal_msg.data}, Mission: {mission_msg.data}")
 
     def feedback_callback(self, feedback_msg):
         with self.telemetry_lock:
