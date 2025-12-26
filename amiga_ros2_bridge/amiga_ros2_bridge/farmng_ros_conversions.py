@@ -176,7 +176,7 @@ def Motors_to_BatteryState(motors, event):
 
     msg.temperature = sum(temps) / len(temps) if temps else float("nan")
     msg.voltage = sum(volts) / len(volts) if volts else float("nan")
-    msg.percentage=int(float(msg.voltage-40.0)*10)
+    msg.percentage=float((msg.voltage-40.0)*10)
     msg.power_supply_status = BatteryState.POWER_SUPPLY_STATUS_DISCHARGING
     msg.power_supply_health = BatteryState.POWER_SUPPLY_HEALTH_GOOD
     msg.power_supply_technology = BatteryState.POWER_SUPPLY_TECHNOLOGY_LION
