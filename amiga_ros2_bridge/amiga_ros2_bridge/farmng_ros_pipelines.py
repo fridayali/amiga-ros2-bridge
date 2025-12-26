@@ -17,7 +17,8 @@ from __future__ import annotations
 # added libraries for ros2
 import rclpy
 from rclpy.node import Node
-
+from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import BatteryState
 from farm_ng.core.event_client import EventClient
 from farm_ng.core.event_service_pb2 import SubscribeRequest
 from .farmng_ros_conversions import farmng_path_to_ros_type
@@ -37,16 +38,38 @@ async def create_ros_publisher(
     subscribe_request: SubscribeRequest,
     publish_topic: str = "",
 ):
-    """Create a ROS publisher for a given gRPC EventClient subscribe request.
-
-    Args:
-        client (EventClient): The EventClient connected to the farm-ng amiga service.
-        subscribe_request (SubscribeRequest): The subscription request for the farm-ng amiga service.
-        publish_topic (str, optional): The ROS topic to publish the farm-ng amiga service data to.
-            If not provided, the farm-ng subscription topic is used by default.
-    """
-
     farm_ng_topic: str = f"/{client.config.name}{subscribe_request.uri.path}"
+
+
+    if subscribe_request.uri.path == "/motor_states":
+
+        temp_topic = "/canbus/motor_states/temperatures"
+        battery_topic = "/canbus/battery_state"
+
+        node.get_logger().info(
+            f"Subscribing to farm-ng topic: {farm_ng_topic} and publishing on ROS topics:\n"
+            f"  {temp_topic} (Float32MultiArray)\n"
+            f"  {battery_topic} (BatteryState)"
+        )
+
+        temp_pub = node.create_publisher(
+            Float32MultiArray, temp_topic, QoSProfile(depth=10)
+        )
+
+        battery_pub = node.create_publisher(
+            BatteryState, battery_topic, QoSProfile(depth=10)
+        )
+
+        async for event, message in client.subscribe(subscribe_request, decode=True):
+            ros_msgs = farmng_to_ros_msg(event, message)
+
+            temp_pub.publish(ros_msgs["temperatures"])
+            battery_pub.publish(ros_msgs["battery"])
+
+        return  
+
+ 
+
     topic: str = publish_topic if publish_topic else farm_ng_topic
 
     node.get_logger().info(
@@ -54,13 +77,11 @@ async def create_ros_publisher(
     )
 
     ros_msg_type = farmng_path_to_ros_type(subscribe_request.uri)
-    # swapping the args in publisher
-    # queue_size=10 is invalid in ros2, replace with QoSProfile(depth=10)
-    ros_publisher = node.create_publisher(ros_msg_type, topic, QoSProfile(depth=10))
+    ros_publisher = node.create_publisher(
+        ros_msg_type, topic, QoSProfile(depth=10)
+    )
 
     async for event, message in client.subscribe(subscribe_request, decode=True):
-        # node.get_logger().info(f"Got reply: {message}")
-        
         ros_msgs = farmng_to_ros_msg(event, message)
         for msg in ros_msgs:
             ros_publisher.publish(msg)

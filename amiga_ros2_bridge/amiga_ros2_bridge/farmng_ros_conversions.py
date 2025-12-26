@@ -46,6 +46,8 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import NavSatFix
+import math
+
 
 # public symbols
 __all__ = [
@@ -102,7 +104,7 @@ def farmng_path_to_ros_type(uri: uri_pb2.Uri):
             return CompressedImage
     elif "filter" in uri.query and uri.path == "/state":
         return Odometry
-
+    
     raise NotImplementedError(f"Unknown farmng message type: {uri}")
 
 
@@ -135,10 +137,10 @@ def farmng_to_ros_msg(event: Event, farmng_msg: Any) -> list:
     elif isinstance(farmng_msg, MotorStates):
         motors = [MotorState.from_proto(m) for m in farmng_msg.motors]
 
-        return [
-            Motors_to_Float32MultiArray(motors),
-            Motors_to_BatteryState(motors, event),
-        ]
+        return {
+            "temperatures": Motors_to_Float32MultiArray(motors),
+            "battery": Motors_to_BatteryState(motors, event),
+        }
 
     raise NotImplementedError(
         f"Unknown farmng message: {type(farmng_msg)} at path: {event.uri.path}"
@@ -165,15 +167,15 @@ def Twist2d_to_TwistStamped(twist2d: Twist2d, event: Event) -> TwistStamped:
     twist_stamped.twist = Twist2d_to_Twist(twist2d)
     return twist_stamped
 
-def Motors_to_BatteryState(motors, event: Event) -> BatteryState:
+def Motors_to_BatteryState(motors, event):
     msg = BatteryState()
     msg.header.stamp = farmng_stamp_to_ros_time(event)
 
-    temps = [m.temperature for m in motors]
-    volts = [m.voltage for m in motors]
+    temps = [m.temperature for m in motors if m.temperature is not None]
+    volts = [m.voltage for m in motors if m.voltage is not None]
 
-    msg.temperature = sum(temps) / len(temps)
-    msg.voltage = sum(volts) / len(volts)
+    msg.temperature = sum(temps) / len(temps) if temps else float("nan")
+    msg.voltage = sum(volts) / len(volts) if volts else float("nan")
 
     msg.power_supply_status = BatteryState.POWER_SUPPLY_STATUS_DISCHARGING
     msg.power_supply_health = BatteryState.POWER_SUPPLY_HEALTH_GOOD
@@ -181,9 +183,13 @@ def Motors_to_BatteryState(motors, event: Event) -> BatteryState:
 
     return msg
 
+
 def Motors_to_Float32MultiArray(motors):
     msg = Float32MultiArray()
-    msg.data = [m.temperature for m in motors]
+    msg.data = [
+        float(m.temperature) if m.temperature is not None else math.nan
+        for m in motors
+    ]
     return msg
 
 
