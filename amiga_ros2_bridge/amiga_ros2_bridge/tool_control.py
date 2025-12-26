@@ -73,7 +73,7 @@ class KeyboardListener:
 
 
 TOOL_CONTROL_CFG = (
-    Path(__file__).resolve().parent
+    Path(__file__).resolve().parent.parent
     / "include"
     / "tool_control_config.json"
 )

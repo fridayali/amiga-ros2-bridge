@@ -27,7 +27,7 @@ TRACK_P6_TO_HOME    = TRACKS_DIR / "nzone1p3home.json"
 SERVICE_CFG = (
     Path(__file__).resolve().parent
     / "include"
-    / "service_config.json"
+    / "path_follower_config.json"
 )
 ### Async event queue ###
 MISSION_EVENTS = asyncio.Queue()
@@ -74,12 +74,13 @@ class MissionBridge(Node):
 
 
 async def load_track(client: EventClient, path: str):
+    print("loading the track file")
     track = proto_from_json_file(Path(path), Track())
-    print("1")
+    print("setting the track file  to the amiga")
     await client.request_reply("/set_track", TrackFollowRequest(track=track))
-    print("2")
+    print("starting the track")
     await client.request_reply("/start", Empty())
-    print("3")
+    print("track is started")
 
 async def wait_track_complete(client: EventClient):
     async for ev, msg in client.subscribe(client.config.subscriptions[0], decode=True):
@@ -89,7 +90,7 @@ async def wait_track_complete(client: EventClient):
                 
                 return
         except:
-            print("mesaj yapısı yanlış")
+            print("message format is wrong")
 
 
 async def timed_hbridge(direction: str, duration: float = 7.0):

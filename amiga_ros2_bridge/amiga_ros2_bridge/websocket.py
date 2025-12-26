@@ -108,7 +108,7 @@ class TelemetryListener(Node):
 
         self.subscription = self.create_subscription(
             CompressedImage,
-            '/oak0/rgb',     
+            "/oak1/rgb/image_raw",     
             self.image_callback,
             10
 )
@@ -133,8 +133,8 @@ class TelemetryListener(Node):
 
 
     def image_callback(self, msg: CompressedImage):
-        self.last_rx_time['/oak0/rgb'] = self.get_clock().now()
-        self.seen_once['/oak0/rgb'] = True
+        self.last_rx_time['/oak1/rgb/image_raw'] = self.get_clock().now()
+        self.seen_once['/oak1/rgb/image_raw'] = True
 
         self.camera_data["RGB_CAMERA1"] = None
 
@@ -192,7 +192,7 @@ class TelemetryListener(Node):
     def battery_callback(self, msg: BatteryState):
         with self.telemetry_lock:
 
-            self.telemetry_data["battery_state"] = int((float(msg.percentage)-40.0)/(10.0)*100) 
+            self.telemetry_data["battery_state"] = int((msg.percentage)) 
 
     def tool_callback(self, msg: String):
         with self.telemetry_lock:
