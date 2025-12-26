@@ -73,7 +73,7 @@ class TelemetryListener(Node):
         self.watchdog_topics = [
             '/gps/pvt',
             '/filter/state',
-            '/oak0/rgb',
+            '/oak1/rgb/image_raw',
             "/canbus/twist"
         ]
 
