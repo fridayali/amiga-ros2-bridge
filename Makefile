@@ -16,7 +16,6 @@ ifneq (,$(filter $(ARCH),arm64 aarch64))
 	TARGET:=jetson
 	CUDA_MOUNT:= --runtime=nvidia \
 			 -v /usr/local/cuda:/usr/local/cuda:ro \
-		     -v /usr/lib/aarch64-linux-gnu/:/usr/lib/aarch64-linux-gnu-host/:ro \
 			 --device /dev/nvhost-gpu \
 			 --device /dev/nvmap 
 endif
