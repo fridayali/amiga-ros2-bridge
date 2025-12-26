@@ -96,8 +96,8 @@ class TelemetryListener(Node):
         
         self.create_subscription(NavSatFix, '/gps/pvt', self.gps_callback, 10)
         self.create_subscription(Odometry, '/filter/state', self.heading_callback, 10)
-        #self.create_subscription(Float32MultiArray, '/motor_state', self.motor_callback, 10) #TODO ADD MOTOR TEMPS AND BATTERY STATUS DEPENDS RECEIVED FRAME 
-        #self.create_subscription(BatteryState, '/battery_state', self.battery_callback, 10)
+        self.create_subscription(Float32MultiArray, '/canbus/motor_states/temperatures', self.motor_callback, 10) 
+        self.create_subscription(BatteryState, '/canbus/battery_state', self.battery_callback, 10)
         self.goal_name_pub=self.create_publisher(String,'/goal_name',10)
         self.create_subscription(
             TwistStamped,

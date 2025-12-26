@@ -63,6 +63,7 @@ bringup:
 	ros2 launch amiga_bringup brain_bringup.launch.py
 
 amiga-streams:
+	export PYTHONPATH=/.venv/lib/python3.10/site-packages:$PYTHONPATH
 	ros2 launch amiga_ros2_bridge amiga_streams.launch.py
 
 twist:
