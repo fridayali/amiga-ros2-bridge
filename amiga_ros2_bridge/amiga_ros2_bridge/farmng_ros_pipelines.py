@@ -60,6 +60,7 @@ async def create_ros_publisher(
 
     async for event, message in client.subscribe(subscribe_request, decode=True):
         # node.get_logger().info(f"Got reply: {message}")
+        
         ros_msgs = farmng_to_ros_msg(event, message)
         for msg in ros_msgs:
             ros_publisher.publish(msg)

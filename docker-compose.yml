@@ -1,7 +1,7 @@
 services:
   amiga_bridge:
     image: ghcr.io/ucmercedrobotics/amiga-ros2-bridge
-    container_name: amiga_bridge
+    container_name: amiga_bridge_2
     network_mode: host
     privileged: true
 
@@ -37,6 +37,7 @@ services:
         source /opt/ros/humble/setup.bash &&
         source /amiga-ros2-bridge/install/setup.bash &&
         source /.venv/bin/activate ;
+        export PYTHONPATH=/.venv/lib/python3.10/site-packages:$PYTHONPATH &&
 
       	echo '[START] amiga_streams.launch.py' &&
         ros2 launch amiga_ros2_bridge amiga_streams.launch.py &
@@ -44,7 +45,7 @@ services:
         sleep 2 &&
 
         #echo '[START] rplidar_s2_launch.py' &&
-        #ros2 launch amiga_ros2_bridge rplidar.launch.py &
+        ros2 launch amiga_ros2_bridge rplidar.launch.py &
 
         sleep 10 &&
 

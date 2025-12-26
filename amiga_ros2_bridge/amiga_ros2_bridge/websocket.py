@@ -22,16 +22,17 @@ import requests
 import websockets
 import json
 import time
-from nav2_msgs.action import NavigateToPose
 from sensor_msgs.msg import NavSatFix, BatteryState,Image
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float32MultiArray, String
 import math
-from nav2_msgs.action import NavigateToPose
 from tf_transformations import quaternion_from_euler
 import cv2
 import base64
 from geometry_msgs.msg import TwistStamped
+from datetime import datetime
+from pathlib import Path
+
 
 
 
@@ -117,8 +118,6 @@ class TelemetryListener(Node):
         self.camera_state_pub=self.create_publisher(String,'/camera_state',10)
         self.goal_state_pub=self.create_publisher(String,'/goal_state',10)
         
-      
-        self.nav_action_client = ActionClient(self, NavigateToPose, '/navigate_to_goal')
 
         self.loop = asyncio.new_event_loop()
         threading.Thread(target=self._run_async_loop, daemon=True).start()
@@ -202,6 +201,13 @@ class TelemetryListener(Node):
     def is_all_null(self, data):
         return all(v is None or v == [None, None, None, None] for v in data.values())
     
+    def _log_to_file(self, message: str):
+        log_path = Path(__file__).parent / "log.txt"
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        with open(log_path, "a") as f:
+            f.write(f"[{timestamp}] {message}\n")
+
     
     def _check_topics(self):
         now = self.get_clock().now()
@@ -211,13 +217,14 @@ class TelemetryListener(Node):
 
             if dt > self.topic_timeout_sec:
                 if self.seen_once[topic]:
-                    self.get_logger().error(
-                        f"[WATCHDOG] Topic timeout: {topic} | {dt:.1f}s"
-                    )
+                    msg = f"[WATCHDOG] Topic timeout: {topic} | {dt:.1f}s"
+                    self.get_logger().error(msg)
+                    self._log_to_file(msg)
                 else:
-                    self.get_logger().error(
-                        f"[WATCHDOG] Topic NEVER received: {topic}"
-                    )
+                    msg = f"[WATCHDOG] Topic NEVER received: {topic}"
+                    self.get_logger().error(msg)
+                    self._log_to_file(msg)
+
 
 
     # def send_goal(self, lat, lon, heading, mission_name):

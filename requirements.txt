@@ -7,6 +7,7 @@ rospkg
 protobuf==5.27.2
 farm-ng-amiga
 utm
+pathlib
 # IMU BNO085
 adafruit_circuitpython_bno08x==1.3.1
 Adafruit-Blinka==8.67.0
@@ -15,8 +16,10 @@ hidapi==0.14.0.post4
 # YOLO
 ultralytics==8.3.236
 #FOR THE WEBSOCKETS 
-numpy
+numpy<2.0
 requests
 websockets
+pynput
 
+#TODO EXPORT PYTHON PATH  export PYTHONPATH=/.venv/lib/python3.10/site-packages:$PYTHONPATH
 

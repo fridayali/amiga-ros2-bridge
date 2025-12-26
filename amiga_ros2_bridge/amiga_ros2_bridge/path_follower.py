@@ -24,6 +24,11 @@ TRACK_P4_TO_P5      = TRACKS_DIR / "nzone1p3.json"
 TRACK_P5_TO_ZONE1   = TRACKS_DIR / "nzone1p3top1.json"
 TRACK_P6_TO_HOME    = TRACKS_DIR / "nzone1p3home.json"
 
+SERVICE_CFG = (
+    Path(__file__).resolve().parent
+    / "include"
+    / "service_config.json"
+)
 ### Async event queue ###
 MISSION_EVENTS = asyncio.Queue()
 
@@ -34,7 +39,7 @@ class MissionBridge(Node):
         super().__init__("mission_bridge")
 
         # farm-ng config
-        self.config: EventServiceConfig = proto_from_json_file(Path("/home/cuma_karaaslan/farm-ng-amiga/py/examples/track_follower/service_config.json"), EventServiceConfig())
+        self.config: EventServiceConfig = proto_from_json_file(SERVICE_CFG, EventServiceConfig())
         self.client: EventClient = EventClient(self.config)
 
         # asyncio loop for farm-ng
