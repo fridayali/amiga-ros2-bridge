@@ -14,7 +14,7 @@ from google.protobuf.empty_pb2 import Empty
 
 from tool_control import send_hbridge_command 
 
-TRACKS_DIR = Path(__file__).resolve().parent.parent / "tracks"
+TRACKS_DIR = Path(__file__).resolve().parent / "tracks"
 TRACK_HOME_TO_ZONE1 = TRACKS_DIR / "nhometozone1.json"
 TRACK_ZONE1_TO_P1   = TRACKS_DIR / "agaconu1.json"
 TRACK_P1_TO_P2      = TRACKS_DIR / "agacarkasi.json"
@@ -157,6 +157,24 @@ async def do_full_sequence(client: EventClient):
 
 
 
+async def stream_track_state(service_config_path: Path) -> None:
+    """Stream the track_follower state.
+
+    Args:
+        service_config_path (Path): The path to the track_follower service config.
+    """
+
+    # Brief wait to allow the track_follower to start (not necessary in practice)
+    await asyncio.sleep(1)
+    print("Streaming track_follower state...")
+
+    config: EventServiceConfig = proto_from_json_file(service_config_path, EventServiceConfig())
+
+    message: TrackFollowerState
+    async for event, message in EventClient(config).subscribe(config.subscriptions[0], decode=True):
+        print("###################")
+        print(message)
+
 
 async def process_missions(service_cfg: EventServiceConfig):
     client = EventClient(service_cfg)
@@ -164,6 +182,7 @@ async def process_missions(service_cfg: EventServiceConfig):
     current_goal = None
     current_mission = None
     current_position = "home"
+    asyncio.create_task(stream_track_state(SERVICE_CFG))
     while True:
         event_type, value = await MISSION_EVENTS.get()
 

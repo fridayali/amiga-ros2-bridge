@@ -13,22 +13,22 @@
         {
             "name": "oak0",
             "port": 50010,
-	        "host": "000.000.000.000"
+	        "host": "10.95.76.1"
+        },
+        {
+            "name": "oak1",
+            "port": 50010,
+	        "host": "10.95.76.1"
         },
         {
             "name": "filter",
             "port": 20001,
-	        "host": "000.000.000.000"
-        },
-        {
-            "name": "track_follower",
-            "port": 20101,
-	        "host": "000.000.000.000"
+	        "host": "10.95.76.1"
         },
         {
             "name": "system_monitor",
             "port": 20201,
-	        "host": "000.000.000.000"
+	        "host": "10.95.76.1"
         },
         {
             "name": "amiga_subscriptions",
@@ -53,6 +53,27 @@
                         "query": "service_name=canbus"
                     },
                     "every_n": 1
+                },
+                {
+                "uri": {
+                    "path": "/state",
+                    "query": "service_name=filter"
+                },
+                "every_n": 1
+                },
+                {
+                "uri": {
+                    "path": "/rgb",
+                    "query": "service_name=oak1"
+                },
+                "every_n": 1
+                },
+                {
+                "uri": {
+                    "path": "/rgb",
+                    "query": "service_name=oak0"
+                },
+                "every_n": 1
                 }
             ]
         }

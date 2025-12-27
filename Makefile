@@ -66,11 +66,6 @@ bringup:
 	ros2 launch amiga_bringup brain_bringup.launch.py
 
 amiga-streams:
-	PYTHONPATH=/.venv/lib/python3.10/site-packages:$$PYTHONPATH \
-	ros2 launch amiga_ros2_bridge amiga_streams.launch.py
-.PHONY: amiga-webscoket
-
-amiga-websocket:
 	set -e
 	echo "[1/5] Setting PYTHONPATH..."
 	export PYTHONPATH=/.venv/lib/python3.10/site-packages:$$PYTHONPATH
@@ -82,11 +77,11 @@ amiga-websocket:
 	ros2 launch amiga_ros2_bridge amiga_streams.launch.py &
 	STREAMS_PID=$$!
 
-	echo "[4/5] Waiting 3 seconds"
-	sleep 3
 
+amiga-websocket:
+	set -e
 	echo "[5/5] Starting path_follower and websocket..."
-	cd amiga-ros2-bridge/amiga_ros2_bridge/amiga_ros2_bridge
+	cd amiga_ros2_bridge/amiga_ros2_bridge
 
 	python3 path_follower.py &
 	PATH_FOLLOWER_PID=$$!
@@ -94,11 +89,9 @@ amiga-websocket:
 	python3 websocket.py &
 	WEBSOCKET_PID=$$!
 
-	echo "amiga_streams PID      : $$STREAMS_PID"
 	echo "path_follower PID      : $$PATH_FOLLOWER_PID"
 	echo "websocket PID          : $$WEBSOCKET_PID"
 
-	wait
 twist:
 	ros2 launch amiga_ros2_bridge twist_control.launch.py
 

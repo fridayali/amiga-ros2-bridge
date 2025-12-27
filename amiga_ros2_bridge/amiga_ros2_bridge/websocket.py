@@ -52,6 +52,10 @@ class CameraState(Enum):
     RGB_CAMERA1_ON = "RGB_CAMERA1_ON"
     RGB_CAMERA1_OFF = "RGB_CAMERA1_OFF"
     RGB_CAMERA1_GET = "RGB_CAMERA1_GET"
+    RGB_CAMERA2_ON = "RGB_CAMERA2_ON"
+    RGB_CAMERA2_OFF = "RGB_CAMERA2_OFF"
+    RGB_CAMERA2_GET = "RGB_CAMERA2_GET"
+    ALL_CAMERA_OFF="ALL_CAMERA_OFF"
 
 
 class TelemetryListener(Node):
@@ -63,7 +67,7 @@ class TelemetryListener(Node):
             "lat": None,
             "lon": None,
             "heading": None,
-            "motor_temps": [0.0, 0.0, 0.0, 0.0],#TODO ADD MOTOR TEMPS AND BATTERY STATUS DEPENDS RECEIVED FRAME 
+            "motor_temps": [0.0, 0.0, 0.0, 0.0],
             "battery_state": 0.0,
             "tool_status": "STATUS_UNKNOWN",
         }
@@ -73,7 +77,8 @@ class TelemetryListener(Node):
         self.watchdog_topics = [
             '/gps/pvt',
             '/filter/state',
-            '/oak1/rgb/image_raw',
+            '/oak0/rgb',
+            '/oak1/rgb',
             "/canbus/twist"
         ]
 
@@ -89,7 +94,8 @@ class TelemetryListener(Node):
         
 
         self.camera_data={
-            "RGB_CAMERA1":None
+            "RGB_CAMERA1":None,
+            "RGB_CAMERA2":None
         }
         self.cameras_state=CameraState.RGB_CAMERA1_OFF
         self.telemetry_lock = threading.Lock()
@@ -108,10 +114,16 @@ class TelemetryListener(Node):
 
         self.subscription = self.create_subscription(
             CompressedImage,
-            "/oak1/rgb/image_raw",     
-            self.image_callback,
+            "/oak1/rgb",     
+            self.image_callback_oak1,
             10
 )
+        self.subscription_oak0 = self.create_subscription(
+            CompressedImage,
+            "/oak0/rgb",
+            self.image_callback_oak0,
+            10
+        )
 
         self.mission_pub=self.create_publisher(String,"/mission",10)
         # self.goal_pose_pub=self.create_publisher(Float32MultiArray,'/goal_pose_webserver',10)
@@ -132,13 +144,19 @@ class TelemetryListener(Node):
         self.loop.run_forever()
 
 
-    def image_callback(self, msg: CompressedImage):
-        self.last_rx_time['/oak1/rgb/image_raw'] = self.get_clock().now()
-        self.seen_once['/oak1/rgb/image_raw'] = True
+    def image_callback_oak1(self, msg: CompressedImage):
+        self._handle_image(msg, camera_key="RGB_CAMERA1", topic="/oak1/rgb")
 
-        self.camera_data["RGB_CAMERA1"] = None
+    def image_callback_oak0(self, msg: CompressedImage):
+        self._handle_image(msg, camera_key="RGB_CAMERA2", topic="/oak0/rgb")
+
+    def _handle_image(self, msg: CompressedImage, camera_key: str, topic: str):
+        self.last_rx_time[topic] = self.get_clock().now()
+        self.seen_once[topic] = True
 
         if self.cameras_state == CameraState.RGB_CAMERA1_OFF:
+            with self.telemetry_lock:
+                self.camera_data[camera_key] = None
             return
 
         try:
@@ -159,7 +177,7 @@ class TelemetryListener(Node):
             jpg_as_text = base64.b64encode(buffer).decode("utf-8")
 
             with self.telemetry_lock:
-                self.camera_data["RGB_CAMERA1"] = jpg_as_text
+                self.camera_data[camera_key] = jpg_as_text
 
         except Exception as e:
             self.get_logger().error(f"Image callback error: {e}")
@@ -273,16 +291,26 @@ class TelemetryListener(Node):
                     print(data_to_send_telemetry)
     
                 #await websocket.send(json.dumps(data_to_send_camera))
-                if self.cameras_state==CameraState.RGB_CAMERA1_OFF:
+                if self.cameras_state==CameraState.RGB_CAMERA1_OFF or self.cameras_state==CameraState.ALL_CAMERA_OFF:
                     print("camera_off")
                     pass
                 elif self.cameras_state==CameraState.RGB_CAMERA1_GET:
                     print("camera_get")
-                    await websocket.send(json.dumps(data_to_send_camera))
+                    await websocket.send(json.dumps(data_to_send_camera["RGB_CAMERA1"]))
                     self.cameras_state=CameraState.RGB_CAMERA1_OFF
                 elif self.cameras_state==CameraState.RGB_CAMERA1_ON:
                     print("camera_on")
-                    await websocket.send(json.dumps(data_to_send_camera))
+                    await websocket.send(json.dumps(data_to_send_camera["RGB_CAMERA1"]))
+                elif self.cameras_state==CameraState.RGB_CAMERA2_OFF or self.cameras_state==CameraState.ALL_CAMERA_OFF:
+                    print("camera_off")
+                    pass
+                elif self.cameras_state==CameraState.RGB_CAMERA2_GET:
+                    print("camera_get")
+                    await websocket.send(json.dumps(data_to_send_camera["RGB_CAMERA2"]))
+                    self.cameras_state=CameraState.RGB_CAMERA2_OFF
+                elif self.cameras_state==CameraState.RGB_CAMERA2_ON:
+                    print("camera_on")
+                    await websocket.send(json.dumps(data_to_send_camera["RGB_CAMERA2"]))
 
                 await asyncio.sleep(2)
             except websockets.exceptions.ConnectionClosed:
@@ -310,7 +338,8 @@ class TelemetryListener(Node):
                     except ValueError:
                         self.get_logger().warn(f"Invalid camra state: {cameras_state_str}")
                         with self.telemetry_lock:
-                            self.cameras_state = CameraState.RGB_CAMERA1_OFF 
+                            self.cameras_state = CameraState.ALL_CAMERA_OFF
+                             
 
                 target_pose_data = None  
 
